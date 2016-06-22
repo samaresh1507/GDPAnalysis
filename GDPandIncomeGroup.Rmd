@@ -1,0 +1,113 @@
+---
+title: "Analysis of GDP and Income Group"
+author: "Sandhya Amaresh"
+date: "June 22, 2016"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+The following analysis and plots are performed on 2 data sets. The first data set is the GDP data for 2014 for 190 countries sourced from world bank. The second data set is Educational Stats which holds around comparable indicators that describe progression, income group, expediture of the various countries. This data set is sourced from the World bank as well. 
+
+The main purpose of this study is 
+a. Download, clean and merge the 2 data sets
+b. Perform analysis and plot graphs to derive meaningful insights
+
+
+#### Install the necessary packages for this analysis. We are installing the downloader and ggplot2
+```{r}
+library(downloader)
+library(ggplot2)
+```
+
+#### Download the GDP and the Ed Stats files
+```{r}
+download("https://d396qusza40orc.cloudfront.net/getdata/data/GDP.csv",destfile="GDPData.csv")
+download("https://d396qusza40orc.cloudfront.net/getdata/data/EDSTATS_Country.csv",destfile="EDStatsData.csv")
+```
+#### Read the GDP data into a dataframe and summarize the data 
+```{r}
+GDPData <- read.csv("GDPData.csv",skip=5,stringsAsFactors = FALSE,header=FALSE)
+str(GDPData)
+```
+
+
+#### Count the number of NAs in each variable
+```{r}
+sum(is.na(GDPData$V3))
+sum(is.na(GDPData$V6))
+sum(is.na(GDPData$V7))
+sum(is.na(GDPData$V8))
+sum(is.na(GDPData$V9))
+sum(is.na(GDPData$V10))
+```
+
+#### Since the columns 6,7,8,9,10 dont have all the 326 observations as NA we would ignore them and take the subset of only the 1st, 3rd, 4th , 5th variables 
+```{r}
+GDPData <- subset(GDPData,select=c(V1,V2,V4,V5))
+str(GDPData)
+```
+
+#### Clean up the columns V1 and V2 where there are not empty as we are interested in data that have a country code & Rank
+#### Also we add meaningful column names to the data set.
+```{r}
+GDPData <- GDPData <- subset(GDPData,V2!="")
+GDPData <- GDPData <- subset(GDPData,V1!="")
+colnames(GDPData) <- c("CountryCode","Rank","CountryName","GDP")
+str(GDPData)
+```
+#### The GDP Dataset is now clean, now we read the next dataset - ED Stats
+```{r}
+EDStats = read.csv("EDStatsData.csv",header=TRUE,stringsAsFactors = FALSE)
+str(EDStats)
+```
+
+####our primary focus for analysis is the income group , so we consider a smaller subset of the 31 variables
+```{r}
+EDStats <- subset(EDStats,select=c(CountryCode,Long.Name,Income.Group,Region,Lending.category,Other.groups,Currency.Unit,Table.Name))
+```
+
+#### Merge the 2 datasets by the country code
+```{r}
+GDP_EDStatsData <- merge(GDPData,EDStats,by="CountryCode")
+str(GDP_EDStatsData)
+```
+
+#### We see that there are 189 common countries in both the files.
+#### To sort the data by Rank, we need to convert the rank field to number and then sort the data in descending order and fetch the 13 observation
+```{r}
+GDP_EDStatsData$Rank <- as.numeric(GDP_EDStatsData$Rank)
+GDP_EDStatsData.sort <- GDP_EDStatsData[order(GDP_EDStatsData$Rank,decreasing = TRUE),]
+GDP_EDStatsData.sort[13,]
+```
+#### We see that St.Kitts and Levis is the 13th rank in the descending order of Ranks
+
+
+####Average GDP Ranking for the countrys grouped by their income group
+```{r}
+sapply(split(GDP_EDStatsData$Rank,GDP_EDStatsData$Income.Group),mean)
+```
+
+
+#### Plotting the GDP by Income group, each income group is coded with a different color
+```{r}
+GDP_EDStatsData$GDP = (gsub(",","",GDP_EDStatsData$GDP))
+GDP_EDStatsData$GDP = as.numeric(GDP_EDStatsData$GDP)
+graphGDP <- qplot(GDP_EDStatsData$Rank,GDP_EDStatsData$GDP,data=GDP_EDStatsData,color=GDP_EDStatsData$Income.Group)
+library(scales)
+graphGDP + scale_y_continuous(name="GDP",labels=comma) + scale_x_continuous(name="Rank")
+```
+
+#### To split gdp rank into 5 quantiles , we need to use the cut function and divide them to 5 groups, and then build a table of quantile group vs the income group. 
+```{r}
+GDP_EDStatsData$quantile <- with(GDP_EDStatsData,cut(GDP_EDStatsData$Rank,breaks=quantile(GDP_EDStatsData$Rank,probs=seq(0,1,by=0.2),na.rm=TRUE),include.lowest=TRUE))
+tableQuantile <- table(GDP_EDStatsData$Income.Group,GDP_EDStatsData$quantile)
+tableQuantile
+```
+####Result - There are 5 countries who are in the Lower Income Group and in the 1 quartile (within rank 38)
