@@ -1,4 +1,4 @@
-# Analysis of GDP and Income Group
+# Case Study 6: Analysis of GDP and Income Group
 Sandhya Amaresh  
 June 22, 2016  
 
@@ -237,11 +237,13 @@ sapply(split(GDP_EDStatsData$Rank,GDP_EDStatsData$Income.Group),mean)
 #### Plotting the GDP by Income group, each income group is coded with a different color
 
 ```r
+library(scales)
 GDP_EDStatsData$GDP = (gsub(",","",GDP_EDStatsData$GDP))
 GDP_EDStatsData$GDP = as.numeric(GDP_EDStatsData$GDP)
-graphGDP <- qplot(GDP_EDStatsData$Rank,GDP_EDStatsData$GDP,data=GDP_EDStatsData,color=GDP_EDStatsData$Income.Group)
-library(scales)
-graphGDP + scale_y_continuous(name="GDP",labels=comma) + scale_x_continuous(name="Rank")
+GDP_EDStatsData.sortIncomeGroup <- GDP_EDStatsData[order(GDP_EDStatsData$Income.Group,decreasing = TRUE),]
+graphGDP <- qplot(factor(GDP_EDStatsData.sortIncomeGroup$Income.Group),GDP_EDStatsData.sortIncomeGroup$GDP,data=GDP_EDStatsData.sortIncomeGroup,color=GDP_EDStatsData.sortIncomeGroup$Income.Group)
+incomegroupsfactor <- factor(GDP_EDStatsData.sortIncomeGroup$Income.Group)
+graphGDP + scale_y_continuous(name="GDP in millions",labels=comma,limits=c(2,18000000),breaks=c(2000000,4000000,6000000,8000000,10000000,12000000,14000000,16000000))+scale_x_discrete(name="Income Group",labels=c("High income: nonOECD"="nOECD","High income: OECD" = "OECD", "Low income" = "LI","Lower middle income" = "LMI","Upper middle income" = "UMI"))
 ```
 
 ![](GDPandIncomeGroup_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
@@ -264,3 +266,10 @@ tableQuantile
 ##   Upper middle income        11           9          8         8         9
 ```
 ####Result - There are 5 countries who are in the Lower Income Group and in the 1 quartile (within rank 38)
+
+
+####Conclusion
+####We can draw the following conclusions
+#####The mean GDP of the high income: oecd group is larger than the mean GDP of the other groups.
+#####The country with the top 3 GDP - US, China, Japan
+
